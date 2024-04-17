@@ -12,7 +12,7 @@ categories.forEach(category => {
 });
 
 filterSongs();
-playAndShowLyrics("01_SAKURA.mp3");
+playAndShowLyrics(musicsNow[0]);
 var musicPlayer = document.getElementById('music-player');
 
 function playMusic() {
