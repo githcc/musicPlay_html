@@ -1,4 +1,4 @@
-const categories = [...new Set(musics.map(song => song.replace("https://githcc.github.io/music_self/", "").split('/')[0]))];
+const categories = [...new Set(musics.map(song => song.replace("https://githcc.github.io/music_self_mp3/", "").split('/')[0]))];
 
 // Get the category list container
 const categoryList = document.querySelector('.category-list');
@@ -12,16 +12,16 @@ categories.forEach(category => {
 });
 
 filterSongs();
-playAndShowLyrics();
+playAndShowLyrics("01_SAKURA.mp3");
+var musicPlayer = document.getElementById('music-player');
 
 function playMusic() {
-    const player = document.getElementById('music-player');
-    if (player.paused) {
+    if (musicPlayer.paused) {
         // 如果音乐是暂停状态,则开始播放
-        player.play();
+        musicPlayer.play();
     } else {
         // 如果音乐是播放状态,则暂停
-        player.pause();
+        musicPlayer.pause();
     }
 }
 
@@ -30,7 +30,7 @@ function filterSongs(category = '') {
     if (detectDeviceType() === 'mobile') {
         musicsNow = shuffledMusics.filter(song => song.includes(`/${category}/`)).slice(0, 2);
     } else {
-        musicsNow = shuffledMusics.filter(song => song.includes(`/${category}/`)).slice(0, 6);
+        musicsNow = shuffledMusics.filter(song => song.includes(`/${category}/`)).slice(0, 4);
     }
     updateSongList();
 }
@@ -57,10 +57,9 @@ function updateSongList() {
 }
 
 function playSong(index) {
-    const player = document.getElementById('music-player');
-    player.src = musicsNow[index];
-    player.play();
-    // playAndShowLyrics(musicsNow[index]);
+    // player.src = musicsNow[index];
+    // player.play();
+    playAndShowLyrics(musicsNow[index]);
 }
 
 
@@ -83,7 +82,7 @@ function parseLyricsFile(lyricsText) {
 }
 
 // 更新歌词显示
-function updateLyrics(currentTimestamp, lyrics, visibleLyrics = 6) {
+function updateLyrics(currentTimestamp, lyrics, visibleLyrics = 4) {
     let currentIndex = 0;
     while (currentIndex < lyrics.length && currentTimestamp >= lyrics[currentIndex].timestamp) {
         currentIndex++;
@@ -104,31 +103,32 @@ function updateLyrics(currentTimestamp, lyrics, visibleLyrics = 6) {
 
     // 滚动歌词
     if (currentIndex >= visibleLyrics && currentIndex < lyrics.length - visibleLyrics) {
-        lyricsDiv.scrollTop = (currentIndex - visibleLyrics) * 24; // 24 是每行歌词的高度
+        lyricsDiv.scrollTop = (currentIndex - visibleLyrics) * 22; // 24 是每行歌词的高度
     } else if (currentIndex < visibleLyrics) {
         lyricsDiv.scrollTop = 0;
     } else {
-        lyricsDiv.scrollTop = (lyrics.length - 2 * visibleLyrics) * 24;
+        lyricsDiv.scrollTop = (lyrics.length - 2 * visibleLyrics) * 22;
     }
 }
+var blobUrl;
 
 function playAndShowLyrics(name) {
+    if (musicPlayer && typeof updateLyrics === 'function') {
+        musicPlayer.removeEventListener('timeupdate', updateLyrics);
+    }
     // 获取 MP3 文件的元数据 //name
-    name = '01_SAKURA.mp3';
     fetch(name)
         .then(response => response.arrayBuffer())
         .then(buffer => {
             // 将 ArrayBuffer 转换为 Blob
             const blob = new Blob([buffer], {type: 'audio/mpeg'});
-            const blobUrl = URL.createObjectURL(blob);
+            blobUrl = URL.createObjectURL(blob);
 
-            // 设置音乐播放器的 src 属性
-            const musicPlayer = document.getElementById('music-player');
             musicPlayer.src = blobUrl;
 
             // 使用 jsmediatags 库解析 MP3 文件元数据
             jsmediatags.read(blob, {
-                onSuccess: tag => {
+                onSuccess: async tag => {
 
                     // 将元数据显示在页面上
                     document.getElementById('title').textContent = tag.tags.title || 'N/A';
@@ -137,46 +137,19 @@ function playAndShowLyrics(name) {
                     document.getElementById('year').textContent = tag.tags.year || 'N/A';
 
                     // 获取专辑图片并显示
+
                     if (tag.tags.picture) {
                         const albumCover = document.getElementById('album-cover');
                         const picture = tag.tags.picture;
-                        const base64String = `data:${picture.format};base64,${btoa(
-                            String.fromCharCode(...new Uint8Array(picture.data))
-                        )}`;
-                        albumCover.src = base64String;
+                        try {
+                            const base64String = `data:${picture.format};base64,${btoa(
+                                String.fromCharCode(...new Uint8Array(picture.data))
+                            )}`;
+                            albumCover.src = base64String;
+                        }catch (e) {
+                            albumCover.src = 'img/default-image.png';
+                        }
                     }
-
-                    // 读取歌词文件
-                    fetch(name.replace('.mp3', '.lrc'))
-                        .then(response => {
-                            if (response.ok) {
-                                return response.text();
-                            } else {
-                                throw new Error('Lyrics file not found');
-                            }
-                        })
-                        .then(lyrics => {
-                            // Parse the lyrics and store them
-                            const lyricsData = parseLyricsFile(lyrics);
-
-                            // Set the music player's source
-                            musicPlayer.src = blobUrl;
-
-                            // Listen for the music player's timeupdate event and update the lyrics display
-                            musicPlayer.addEventListener('timeupdate', () => {
-                                if (detectDeviceType() === 'mobile') {
-                                    updateLyrics(musicPlayer.currentTime * 1000, lyricsData, 3);
-                                } else {
-                                    updateLyrics(musicPlayer.currentTime * 1000, lyricsData);
-                                }
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Error fetching lyrics file:', error);
-                            // Display a "No Lyrics Available" message
-                            const lyricDisplay = document.getElementById('lyrics-display');
-                            lyricDisplay.textContent = 'No Lyrics Available';
-                        });
                 },
                 onError: error => {
                     console.error('Error parsing MP3 metadata:', error);
@@ -185,6 +158,37 @@ function playAndShowLyrics(name) {
         })
         .catch(error => {
             console.error('Error fetching MP3 file:', error);
+        });
+    // 读取歌词文件
+    fetch(name.replace('.mp3', '.lrc'))
+        .then(response => {
+            if (response.ok) {
+                return response.text();
+            } else {
+                throw new Error('Lyrics file not found');
+            }
+        })
+        .then(lyrics => {
+            // Parse the lyrics and store them
+            const lyricsData = parseLyricsFile(lyrics);
+
+            // Set the music player's source
+            musicPlayer.src = blobUrl;
+
+            // Listen for the music player's timeupdate event and update the lyrics display
+            musicPlayer.addEventListener('timeupdate', () => {
+                if (detectDeviceType() === 'mobile') {
+                    updateLyrics(musicPlayer.currentTime * 1000, lyricsData, 3);
+                } else {
+                    updateLyrics(musicPlayer.currentTime * 1000, lyricsData);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching lyrics file:', error);
+            // Display a "No Lyrics Available" message
+            const lyricDisplay = document.getElementById('lyrics-display');
+            lyricDisplay.textContent = 'No Lyrics Available';
         });
 }
 
