@@ -94,8 +94,15 @@ body {
     margin-bottom: 2rem;
 }
 
+.song-list button {
+    line-height: 22px;
+    padding: 2px;
+    margin: 2px;
+}
+
 .music-player {
     width: 80%;
+    max-width: 1050px;
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 0.5rem 0.5rem 0 0;
     padding: 1rem;
