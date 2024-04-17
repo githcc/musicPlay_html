@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>MP3 Metadata</title>
+    <script src="js/jsmediatags.min.js"></script>
+
+    <style>
+
+        body {
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            /*background-color: #121212;*/
+            /*background-image: url('https://file.51pptmoban.com/d/file/2014/05/13/d12562dabc94ff6130521134133b5d3d.jpg');*/
+            background-image: url('img/d12562dabc94ff6130521134133b5d3d.jpg');
+        }
+
+        .metadata h1, .metadata p {
+            margin: 0.5rem 0;
+        }
+
+        .music-player audio::-webkit-media-controls-enclosure {
+            background-color: transparent;
+            border-radius: 0.25rem;
+        }
+
+        .music-player audio::-webkit-media-controls-play-button,
+        .music-player audio::-webkit-media-controls-pause-button,
+        .music-player audio::-webkit-media-controls-timeline,
+        .music-player audio::-webkit-media-controls-current-time-display,
+        .music-player audio::-webkit-media-controls-time-remaining-display {
+            color: #fff;
+        }
+
+        .lyrics {
+            margin-top: 2rem;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.5) transparent;
+        }
+
+        .lyrics::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .lyrics::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 4px;
+        }
+
+        .lyrics p {
+            margin: 0.5rem 0;
+            text-align: center;
+            font-size: 1.1rem;
+            color: #b3b3b3;
+        }
+
+        .lyrics p.current {
+            color: #fff;
+            font-weight: bold;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .metadata {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .album-cover {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .lyrics {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.5) transparent;
+        }
+
+        .music-player {
+            width: 80%;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem 0.5rem 0 0;
+            padding: 1rem;
+            box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
+            position: absolute;
+            bottom: 0;
+        }
+
+        .music-player audio {
+            width: 100%;
+            background-color: transparent;
+            outline: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            border-radius: 0.25rem;
+            height: 40px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="metadata">
+        <h1>
+            <span id="title"></span> -
+            <span id="artist"></span>
+        </h1>
+        <span id="album"></span><br>
+        <span id="year"></span>
+    </div>
+    <img id="album-cover" class="album-cover" alt="Album Cover">
+    <div class="lyrics" id="lyrics">Loading lyrics...</div>
+    <div class="music-player">
+        <audio id="music-player" controls></audio>
+    </div>
+</div>
+
+<script>
+    // 解析歌词文件
+    function parseLyricsFile(lyricsText) {
+        const lyrics = [];
+        const lines = lyricsText.split('\n');
+        const regex = /\[(\d{2}):(\d{2})\.(\d{2})\](.*)/;
+
+        for (const line of lines) {
+            const match = line.match(regex);
+            if (match) {
+                const [, minutes, seconds, milliseconds, text] = match;
+                const timestamp = parseInt(minutes) * 60000 + parseInt(seconds) * 1000 + parseInt(milliseconds) * 10;
+                lyrics.push({ timestamp, text });
+            }
+        }
+
+        return lyrics;
+    }
+
+    // 更新歌词显示
+    function updateLyrics(currentTimestamp, lyrics, visibleLyrics = 6) {
+        let currentIndex = 0;
+        while (currentIndex < lyrics.length && currentTimestamp >= lyrics[currentIndex].timestamp) {
+            currentIndex++;
+        }
+
+        const startIndex = Math.max(0, currentIndex - visibleLyrics);
+        const endIndex = Math.min(lyrics.length, currentIndex + visibleLyrics + 1);
+
+        const lyricsDiv = document.getElementById('lyrics');
+        lyricsDiv.innerHTML = '';
+
+        for (let i = startIndex; i < endIndex; i++) {
+            const lyricElement = document.createElement('p');
+            lyricElement.textContent = lyrics[i].text;
+            lyricElement.classList.toggle('current', i === currentIndex - 1);
+            lyricsDiv.appendChild(lyricElement);
+        }
+
+        // 滚动歌词
+        if (currentIndex >= visibleLyrics && currentIndex < lyrics.length - visibleLyrics) {
+            lyricsDiv.scrollTop = (currentIndex - visibleLyrics) * 24; // 24 是每行歌词的高度
+        } else if (currentIndex < visibleLyrics) {
+            lyricsDiv.scrollTop = 0;
+        } else {
+            lyricsDiv.scrollTop = (lyrics.length - 2 * visibleLyrics) * 24;
+        }
+    }
+
+    // 获取 MP3 文件的元数据
+    fetch('01_SAKURA.mp3')
+        .then(response => response.arrayBuffer())
+        .then(buffer => {
+            // 将 ArrayBuffer 转换为 Blob
+            const blob = new Blob([buffer], { type: 'audio/mpeg' });
+            const blobUrl = URL.createObjectURL(blob);
+
+            // 设置音乐播放器的 src 属性
+            const musicPlayer = document.getElementById('music-player');
+            musicPlayer.src = blobUrl;
+
+            // 使用 jsmediatags 库解析 MP3 文件元数据
+            jsmediatags.read(blob, {
+                onSuccess: tag => {
+
+                    // 将元数据显示在页面上
+                    document.getElementById('title').textContent = tag.tags.title || 'N/A';
+                    document.getElementById('artist').textContent = tag.tags.artist || 'N/A';
+                    document.getElementById('album').textContent = tag.tags.album || 'N/A';
+                    document.getElementById('year').textContent = tag.tags.year || 'N/A';
+
+                    // 获取专辑图片并显示
+                    if (tag.tags.picture) {
+                        const albumCover = document.getElementById('album-cover');
+                        const picture = tag.tags.picture;
+                        const base64String = `data:${picture.format};base64,${btoa(
+                            String.fromCharCode(...new Uint8Array(picture.data))
+                        )}`;
+                        albumCover.src = base64String;
+                    }
+
+                    // 读取歌词文件
+                    fetch('01_SAKURA.lrc')
+                        .then(response => response.text())
+                        .then(lyrics => {
+                            // 解析歌词并存储
+                            const lyricsData = parseLyricsFile(lyrics);
+
+                            // 设置音乐播放器的 src 属性
+                            musicPlayer.src = blobUrl;
+
+                            // 监听音乐播放时间,更新歌词显示
+                            musicPlayer.addEventListener('timeupdate', () => {
+                                updateLyrics(musicPlayer.currentTime * 1000, lyricsData);
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error fetching lyrics file:', error);
+                        });
+                },
+                onError: error => {
+                    console.error('Error parsing MP3 metadata:', error);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching MP3 file:', error);
+        });
+</script>
+</body>
+</html>
