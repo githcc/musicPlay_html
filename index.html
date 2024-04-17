@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>MP3 Metadata</title>
     <script src="js/jsmediatags.min.js"></script>
+    <meta http-equiv="content-type" content="Cache-Control: no-cache, no-store, must-revalidate">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
 
     <style>
 
@@ -21,7 +23,7 @@
             background-image: url('img/d12562dabc94ff6130521134133b5d3d.jpg');
         }
 
-        .metadata h1, .metadata p {
+        .metadata h2, .metadata p {
             margin: 0.5rem 0;
         }
 
@@ -121,10 +123,10 @@
 <body>
 <div class="container">
     <div class="metadata">
-        <h1>
+        <h2>
             <span id="title"></span> -
             <span id="artist"></span>
-        </h1>
+        </h2>
         <span id="album"></span><br>
         <span id="year"></span>
     </div>
@@ -228,7 +230,11 @@
 
                             // 监听音乐播放时间,更新歌词显示
                             musicPlayer.addEventListener('timeupdate', () => {
-                                updateLyrics(musicPlayer.currentTime * 1000, lyricsData);
+                                if ( detectDeviceType() === 'mobile' ){
+                                    updateLyrics(musicPlayer.currentTime * 1000, lyricsData,3);
+                                }else{
+                                    updateLyrics(musicPlayer.currentTime * 1000, lyricsData);
+                                }
                             });
                         })
                         .catch(error => {
@@ -243,6 +249,18 @@
         .catch(error => {
             console.error('Error fetching MP3 file:', error);
         });
+    function detectDeviceType() {
+        let deviceType;
+
+        // 检查是否为移动设备
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            deviceType = 'mobile';
+        } else {
+            deviceType = 'desktop';
+        }
+
+        return deviceType;
+    }
 </script>
 </body>
 </html>
