@@ -14,6 +14,7 @@ categories.forEach(category => {
 filterSongs();
 playAndShowLyrics(musicsNow[0]);
 var musicPlayer = document.getElementById('music-player');
+var blobUrl;
 
 function playMusic() {
     if (musicPlayer.paused) {
@@ -110,7 +111,6 @@ function updateLyrics(currentTimestamp, lyrics, visibleLyrics = 4) {
         lyricsDiv.scrollTop = (lyrics.length - 2 * visibleLyrics) * 22;
     }
 }
-var blobUrl;
 
 function playAndShowLyrics(name) {
     if (musicPlayer && typeof updateLyrics === 'function') {
