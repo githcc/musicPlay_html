@@ -7,6 +7,10 @@
 1. Claude-3-Haiku的代码能力比gpt3.5-web强
 2. 当内容不网站需要使用`继续输出`，`告诉我更多`，不同于ChatGPT的`继续`
 
+## 视频
+
+1. [b站](https://www.bilibili.com/video/BV1WE421M75Z)
+
 
 ## 参考资料
 
