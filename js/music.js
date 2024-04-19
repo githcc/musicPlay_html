@@ -150,6 +150,10 @@ function playAndShowLyrics(name) {
                             albumCover.src = 'img/default-image.png';
                         }
                     }
+                    if (musicPlayer.paused) {
+                        // 如果音乐是暂停状态,则开始播放
+                        musicPlayer.play();
+                    }
                 },
                 onError: error => {
                     console.error('Error parsing MP3 metadata:', error);
