@@ -142,10 +142,14 @@ function playAndShowLyrics(name) {
                         const albumCover = document.getElementById('album-cover');
                         const picture = tag.tags.picture;
                         try {
-                            const base64String = `data:${picture.format};base64,${btoa(
-                                String.fromCharCode(...new Uint8Array(picture.data))
-                            )}`;
-                            albumCover.src = base64String;
+                            let base64String;
+                            try {
+                                base64String = btoa(Array.from(picture.data, byte => String.fromCharCode(byte)).join(''));
+                            } catch (e) {
+                                console.error('Error converting image data to base64:', e);
+                                base64String = '';
+                            }
+                            albumCover.src = `data:${picture.format};base64,${base64String}`;
                         }catch (e) {
                             albumCover.src = 'img/default-image.png';
                         }
